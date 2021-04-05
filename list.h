@@ -1,56 +1,72 @@
 #ifndef LIST_H
 #define LIST_H
 
-#include <sstream>             // for stringstream
-
-// element of a list
-template <typename T>
-struct list_element
-{
-	T data;                    // element data
-	list_element<T>* next;     // pointer to next element
-};
-
 template <typename T>
 class list
 {
-	list_element<T>* head;    // pointer to first element
-	size_t cnt;               // element counter
+	// list component [PRIVATE STRUCTURE]
+	struct list_element
+	{
+		T m_data{};							// element data
+		list_element* m_next{ nullptr };	// pointer to next element
+		list_element* m_prev{ nullptr };	// pointer to previous element
+
+		// base constructor
+		list_element() = default;
+	};
+
+	list_element* m_head;					// pointer to the first element
+	size_t m_cnt;							// keeps track of number of elements
 
 public:
-	// forward iterator
+	// iterator [PUBLIC STRUCTURE]
 	struct iterator
 	{
-		list_element<T>* m_current;
+		list_element* m_current;			// current position of iterator
 
-		// goes to the next list element (prefix ++)
+		// proceeds to the following list_element
 		iterator& operator++()
 		{
 			this->m_current = m_current->next;
 			return *this;
 		}
 
-		// postfix ++
+		// suffix incrementing operator
 		iterator operator++(int)
 		{
-			iterator tmp = *this;
+			iterator it = *this;
 			++(*this);
-			return tmp;
+			return it;
 		}
 
-		// returns true if the pointers are equal
+		// regresses to the previous list_element
+		iterator& operator--()
+		{
+			this->m_current = m_current->prev;
+			return *this;
+		}
+
+		// suffex decrementing operator
+		iterator operator--(int)
+		{
+			iterator it = *this;
+			--(*this);
+			return it;
+		}
+
+		// query checking if iterator pointers are equal
 		bool operator==(const iterator& it) const
 		{
 			return this->m_current == it.m_current;
 		}
 
-		// returns true if the pointers are unequal
+		// query checking if iterator pointers are not equal
 		bool operator!=(const iterator& it) const
 		{
 			return this->m_current != it.m_current;
 		}
 
-		// ...
+		// moves forward a parameter number of steps
 		iterator operator+(size_t i) const
 		{
 			iterator it = *this;
@@ -59,48 +75,48 @@ public:
 			return it;
 		}
 
-		// de-referencing
+		// dereference
 		T& operator*()
 		{
-			return this->m_current->data;
+			return this->m_current->m_data;
 		}
 	};
 
-	// Get an iterator to the first element of the list
-	iterator begin()
+	// query returning an iterator to the first element of a list
+	iterator begin() const
 	{
 		iterator it;
-		it.m_current = this->head;
+		it.m_current = this->m_head;
 		return it;
 	}
 
-	// Get an iterator to the elment after the last element of the list.
-	iterator end()
+	// query returning an iterator to the last element of a list
+	iterator end() const
 	{
 		iterator it;
 		it.m_current = nullptr;
 		return it;
 	}
 
-	// Create an empty list.
+	// base constructor
 	list()
 	{
-		this->cnt = 0;
-		this->head = nullptr;
+		this->m_cnt = 0;
+		this->m_head = nullptr;
 	}
-	
+
 	// destructor
 	~list()
 	{
-		while (this->head)
+		while (this->m_head)
 		{
-			auto tmp = this->head->next;
-			delete this->head;
-			this->head = tmp;
+			auto next = this->m_head->m_next;
+			delete this->m_head;
+			this->m_head = next;
 		}
-		this->cnt = 0;
+		this->m_cnt = 0;
 	}
-
+	
 	// copy constructor
 	list(const list& li)
 	{
@@ -112,168 +128,171 @@ public:
 	{
 		if (this != &li)
 		{
-			delete this->head;
-			this->head = new list_element<T>;
-			auto newit = this->head;
-			auto it = li.head;
+			delete this;
+			this->m_head = new list_element;
+			auto thisIt = this->m_head;
+			auto listIt = li.m_head;
 			for (size_t i = 0; i < li.cnt; i++)
 			{
-				newit->data = it->data;
-				if (it->next != nullptr)
+				thisIt->m_data = listIt->m_data;
+				if (listIt->m_next != nullptr)
 				{
-					newit->next = new list_element<T>;
-					newit = newit->next;
-					it = it->next;
+					thisIt->m_next = new list_element;
+					thisIt->m_next->m_prev = thisIt;
+					thisIt = thisIt->m_next;
+					listIt = listIt->m_next;
 				}
-				else
-					newit->next = nullptr;
 			}
-			this->cnt = li.cnt;
+			this->m_cnt = li.m_cnt;
 		}
 		return *this;
 	}
 
-	// Get the number of elements in the list
+	// query returning the size of the list
 	size_t size() const
 	{
-		return this->cnt;
+		return this->m_cnt;
 	}
 
-	// Returns a string representation of the list.
-	std::string toString()
+	// adds an item to the front of the list
+	void push_front(const T& val)
 	{
-		std::stringstream ss;
-		if (this->cnt == 0)
-			ss << "[Empty]";
-		else
+		list_element* elem = new list_element;
+		elem->m_data = val;
+		if (this->m_head != nullptr)
+			this->m_head->m_prev = elem;
+		elem->m_next = this->m_head;
+		this->m_head = elem;
+		++this->m_cnt;
+	}
+	
+	// adds an item at the end of the list
+	void push_back(const T& val)
+	{
+		list_element* elem = new list_element;
+		elem->m_data = val;
+		if (this->m_head != nullptr)
 		{
-			auto it = this->head;
-			while (it != nullptr)
-			{
-				ss << "[" << it->data << "]";
-				it = it->next;
-			}
-		}
-		return ss.str();
-	}
-
-	// adds an item at the front of the list
-	void push_front(const T& value)
-	{
-		list_element<T>* obj = new list_element<T>;
-		obj->data = value;
-		if (this->head != nullptr)
-			obj->next = this->head;
-		else
-			obj->next = nullptr;
-		this->head = obj;
-		++this->cnt;
-	}
-
-	// Add an element at the end of the list
-	void push_back(const T& value)
-	{
-		list_element<T>* obj = new list_element<T>;
-		obj->data = value;
-		obj->next = nullptr;
-		if (this->head != nullptr)
-		{
-			list<T>::iterator it = this->begin();
-			for (size_t i = 1; i < (*this).size(); i++)
+			auto it = this->begin();
+			while (it.m_current->m_next != this->end())
 				++it;
-			it.m_current->next = obj;
-			this->cnt++;
+			it.m_current->m_next = elem;
+			elem.m_prev = it.m_current;
 		}
 		else
+			this->m_head = elem;
+		++this->m_cnt;
+	}
+
+	// adds an item at the given postiion [starts at 0]
+	void insert(const T& val, size_t idx)
+	{
+		if (this->begin != nullptr && this->m_cnt >= idx)
 		{
-			this->head = obj;
+			list_element* elem = new list_element;
+			elem->m_data = val;
+			auto it = this->begin();
+			for (size_t i = 0; i < idx - 1; ++i, ++it);
+			elem->m_next = it.m_current->m_next;
+			elem->m_prev = it.m_current;
+			it.m_current->m_next->m_prev = elem;
+			it.m_current->m_next = elem;
+		}
+	}
+
+	// adds an item to the location before the iterator
+	void insert(iterator& it, const T& value)
+	{
+		if (it == nullptr)
+			return;
+		if (it == this->begin())
+			this->push_front(val);
+		else
+		{
+			list_element* elem = new list_element;
+			elem->data = value;
+			it.m_current->m_prev->m_next = elem;
+			elem->m_prev = it.m_current->prev;
+			it.m_current->m_prev = elem;
+			elem->m_next = it.m_current;
 			this->cnt++;
 		}
 	}
 
-	// removes all elements with certain value from list
-	void remove(const T value)
+	// erases the item at the location of the iterator
+	void erase(iterator& it)
 	{
-		if (this->cnt == 0)
+		delete it.m_current;
+		it.m_current = nullptr;
+	}
+
+	// removes first element with a certain value from the list
+	void remove(const T val)
+	{
+		if (this->m_cnt == 0)
 			return;
-		if (this->cnt == 1)
+		if (this->m_cnt == 1)
 		{
-			if (this->head->data == value)
+			if (this->m_head->m_data == val)
 			{
-				delete this->head;
-				this->head = nullptr;
-				--this->cnt;
+				delete this->m_head;
+				this->m_head = nullptr;
+				--this->m_cnt;
 			}
 			return;
 		}
-		if (this->head->data == value)
+		if (this->m_head->m_data == val)
 		{
-			auto temp = this->head->next;
-			delete this->head;
-			this->head = temp;
-			--this->cnt;
+			auto temp = this->m_head->m_next;
+			temp->m_next->m_prev = temp;
+			delete this->m_head;
+			this->m_head = temp;
+			--this->m_cnt;
 		}
 		else
 		{
-			auto it = this->head;
-			while (it->next != nullptr)
+			iterator it = this->begin();
+			for (iterator it = this->begin(); it != this->end(); ++it)
 			{
-				if (it->next->data == value)
+				if (*it == val)
 				{
-					auto peek = it->next;
-					it->next = peek->next;
-					delete peek;
-					--this->cnt;
-					break;
+					it.m_current->m_prev->m_next = it.m_current->m_next;
+					it.m_current->m_next->m_prev = it.m_current->m_prev;
+					this->erase(it);
+					return;
 				}
 				else
-					it = it->next;
+					it = it->m_next;
 			}
 		}
+		return;
 	}
 
-	// returns true if the value is in the list
-	bool search(const T& value) const
+	// query returning if a value is in the list
+	bool search(const T& val) const
 	{
-		list_element<T>* temp = this->head;
-		for (size_t i = 0; i < this->cnt; i++)
+		for (auto it = this->begin(); it != this->end(); ++it)
 		{
-			if (temp->data == value)
+			if (*it == val)
 				return true;
-			else
-				temp = temp->next;
 		}
 		return false;
 	}
 
-	// adds an item at the given position
-	void insert(const T& value, size_t idx)
-	{
-		if (this->begin != nullptr)
-		{
-			if (this->cnt < idx)
-				return;
-
-				list_element<T>* obj = new list_element<T>;
-				obj->data = value;
-				auto it = this->head;
-				for (size_t i = 0; i < idx - 1; i++)
-					it = it->next;
-				obj->next = it->next;
-				it->next = obj;
-			this->cnt++;
-		}
-	}
-
-	// returns the element at a certain position
+	// query returning the element at a position [starts at 0]
 	T& at(size_t idx) const
 	{
-		if (this->cnt < idx || idx < 0)
+		if (this->m_cnt < idx || idx < 0)
 			throw std::invalid_argument("INVALID INDEX");
-		auto it = this->head;
-		for (size_t i = 0; i < idx; i++)
-			it = it->next;
-		return it->data;
+		auto it = this->begin();
+		for (size_t i = 0; i < idx; ++it, ++i);
+		return it->m_data;
+	}
+
+	// [] operator overload
+	T& operator[](size_t idx) const
+	{
+		return this->at(idx);
 	}
 };
 

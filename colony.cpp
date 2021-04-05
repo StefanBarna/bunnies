@@ -5,22 +5,9 @@
 #include <thread>
 #include "colony.h"
 
-
 using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
-
-// TODO: add a constant iterator
-size_t colony::bunnyofcolor(colour col, bool sex) /*const*/
-{
-	size_t cnt = 0;
-	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-	{
-		if ((*it).getSex() == sex && (*it).getColour() == col)
-			cnt++;
-	}
-	return cnt;
-}
 
 size_t colony::size() const
 {
@@ -91,6 +78,124 @@ void mergeSort(list<bunny>& li)
 	}
 }
 
+size_t colony::bunnyofcolor(colour col, bool sex)
+{
+	size_t cnt = 0;
+	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+	{
+		if ((*it).getSex() == sex && (*it).getColour() == col)
+			cnt++;
+	}
+	return cnt;
+}
+
+void colony::age()
+{
+	list<bunny> markedForDeath;
+	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+	{
+		(*it).age();
+		if ((*it).deathCheck())
+			markedForDeath.push_front(*it);
+	}
+	for (auto it = markedForDeath.begin(); it != markedForDeath.end(); ++it)
+	{
+		m_list.remove(*it);
+	}
+}
+
+void colony::breed()
+{
+	bool breed = false;
+	size_t prevSize = this->size();
+	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+	{
+		if ((*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
+		{
+			breed = true;
+			break;
+		}
+	}
+	if (breed)
+	{
+		// creates a list of babies
+		list<bunny> babies;
+		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+		{
+			if (!(*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
+				babies.push_front(bunny((*it).getColour()));
+		}
+		// adds the babies to the colony
+		for (auto it = babies.begin(); it != babies.end(); ++it)
+			this->m_list.push_back(*it);
+	}
+}
+
+void colony::infect()
+{
+	bool infection = false;
+	bool infectable = false;
+	size_t infected = 0;
+	// is there an infection?
+	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+	{
+		if ((*it).isInfected())
+		{
+			infection = true;
+			break;
+		}
+		else if (!(*it).isInfected())
+		{
+			infectable = true;
+			break;
+		}
+	}
+	if (infection && infectable)
+	{
+		random_device device;
+		default_random_engine rand(device());
+		uniform_int_distribution<size_t> dist(0ull, this->size() - 1ull);
+
+		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+		{
+			// find number infected
+			if ((*it).isInfected())
+				++infected;
+		}
+		// infect the clean bunnies number infected times
+		for (size_t i = 0; i < infected; i++)
+		{
+			size_t loc = dist(rand);
+			while (this->m_list.at(loc).isInfected())
+				loc = dist(rand);
+			this->m_list.at(loc).infect();
+		}
+	}
+}
+
+void colony::userKill()
+{
+	INPUT_RECORD inRecord{};
+	DWORD r = 0;
+	HANDLE consoleHandle = GetStdHandle(STD_INPUT_HANDLE);
+
+	// check if some console event happened; leave that event in the queue
+	if (PeekConsoleInput(consoleHandle, &inRecord, 1, &r) && r > 0)
+	{
+		// extract the event (remove it from the queue)
+		if (ReadConsoleInput(consoleHandle, &inRecord, 1, &r))
+		{
+			// check if the event was related to keywboard
+			if (inRecord.EventType == KEY_EVENT)
+			{
+				// the user pressed a key, find which key
+				if (inRecord.Event.KeyEvent.bKeyDown != 0 && inRecord.Event.KeyEvent.wVirtualKeyCode == 'K')
+					this->cull();
+			}
+		}
+	}
+}
+
 void colony::run()
 {
 	random_device device;
@@ -116,79 +221,13 @@ void colony::run()
 		}
 
 		// ageing
-		list<bunny> markedForDeath;
-		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-		{
-			(*it).age();
-			if ((*it).deathCheck())
-				markedForDeath.push_front(*it);
-		}
-		for (auto it = markedForDeath.begin(); it != markedForDeath.end(); ++it)
-		{
-			m_list.remove(*it);
-		}
+		this->age();
 
 		// breeding
-		bool breed = false;
-		size_t prevSize = this->size();
-		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-		{
-			if ((*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
-			{
-				breed = true;
-				break;
-			}
-		}
-		if (breed)
-		{
-			// creates a list of babies
-			list<bunny> babies;
-			for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-			{
-				if (!(*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
-					babies.push_front(bunny((*it).getColour()));
-			}
-			// adds the babies to the colony
-			for (auto it = babies.begin(); it != babies.end(); ++it)
-				this->m_list.push_back(*it);
-		}
+		this->breed();
 
 		// infection
-		bool infection = false;
-		bool infectable = false;
-		size_t infected = 0;
-		// is there an infection?
-		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-		{
-			if ((*it).isInfected())
-			{
-				infection = true;
-				break;
-			}
-			else if (!(*it).isInfected())
-			{
-				infectable = true;
-				break;
-			}
-		}
-		if (infection && infectable)
-		{
-			for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-			{
-				// find number infected
-				if ((*it).isInfected())
-					++infected;
-			}
-			// infect the clean bunnies number infected times
-			for (size_t i = 0; i < infected; i++)
-			{
-				uniform_int_distribution<size_t> dist(0, this->size() - 1);
-				size_t loc = dist(rand);
-				while (this->m_list.at(loc).isInfected())
-					loc = dist(rand);
-				this->m_list.at(loc).infect();
-			}
-		}
+		this->infect();
 		
 		// culling
 		if (this->size() > 1000)
@@ -207,33 +246,15 @@ void colony::run()
 		this_thread::sleep_for(1s);
 
 		// user killing
-		INPUT_RECORD inRecord{};
-		DWORD r = 0;
-		HANDLE consoleHandle = GetStdHandle(STD_INPUT_HANDLE);
-
-		// check if some console event happened; leave that event in the queue
-		if (PeekConsoleInput(consoleHandle, &inRecord, 1, &r) && r > 0)
-		{
-			// extract the event (remove it from the queue)
-			if (ReadConsoleInput(consoleHandle, &inRecord, 1, &r))
-			{
-				// check if the event was related to keywboard
-				if (inRecord.EventType == KEY_EVENT)
-				{
-					// the user pressed a key, find which key
-					if (inRecord.Event.KeyEvent.bKeyDown != 0 && inRecord.Event.KeyEvent.wVirtualKeyCode == 'K')
-						this->cull();
-				}
-			}
-		}
+		this->userKill();
 
 		it++; 
 	}
 }
 
-// TODO: split up the main function (run()) to multiple smaller functions with clear functionalities
-// TODO:  create the tester project and test everything (all classes, all functions)
+// TODO: EVERY TIME YOU MODIFY SOMETHING ADD IT TO GITHUB
+// TODO: create the tester project and test everything (all classes, all functions)
 //          when you design tests, don't look at the implementation of the tested function/class; look what the specs (specifications, what the function should achieve).
-// TODO: add an erase function to your list that erases at the iterator (invalidates the iterator)
-// TODO: add a function in your list that adds an element before the iterator it receives
+// TODO: add an erase function to your list that erases at the iterator (invalidates the iterator) ||
+// TODO: add a function in your list that adds an element before the iterator it receives ||
 // TODO: add console interractivity.

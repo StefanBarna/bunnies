@@ -18,6 +18,18 @@ public:
 	// kills half of the population
 	void cull();
 
+	// increments the age of each bunny and kills old ones 
+	void age();
+
+	// breeds the bunnies in the colony
+	void breed();
+
+	// infects members of a colony
+	void infect();
+
+	// recieves player instruction for a cull
+	void userKill();
+
 	// runs the colony simulator
 	void run();
 };
