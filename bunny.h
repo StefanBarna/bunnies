@@ -43,13 +43,13 @@ public:
 	// query that returns colour of a bunny
 	colour getColour() const;
 
-	// query that returns colour of a bunny
+	// query that returns sex of a bunny
 	bool getSex() const;
 
 	// query that returns the age of a bunny
 	size_t getAge() const;
 
-	// query that returns colour of a bunny
+	// query that returns if a bunny is infected
 	bool isInfected() const;
 
 	// infects the target bunny

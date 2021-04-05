@@ -1,6 +1,8 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include <stdexcept>
+
 template <typename T>
 class list
 {
@@ -27,7 +29,7 @@ public:
 		// proceeds to the following list_element
 		iterator& operator++()
 		{
-			this->m_current = m_current->next;
+			this->m_current = m_current->m_next;
 			return *this;
 		}
 
@@ -42,7 +44,7 @@ public:
 		// regresses to the previous list_element
 		iterator& operator--()
 		{
-			this->m_current = m_current->prev;
+			this->m_current = m_current->m_prev;
 			return *this;
 		}
 
@@ -79,6 +81,12 @@ public:
 		T& operator*()
 		{
 			return this->m_current->m_data;
+		}
+
+		// -> operator
+		T* operator->()
+		{
+			return &(this->m_current->m_data);
 		}
 	};
 
@@ -173,11 +181,11 @@ public:
 		elem->m_data = val;
 		if (this->m_head != nullptr)
 		{
-			auto it = this->begin();
-			while (it.m_current->m_next != this->end())
-				++it;
-			it.m_current->m_next = elem;
-			elem.m_prev = it.m_current;
+			list_element* it = this->m_head;
+			while (it->m_next != nullptr)
+				it = it->m_next;
+			it->m_next = elem;
+			elem->m_prev = it;
 		}
 		else
 			this->m_head = elem;
@@ -201,7 +209,7 @@ public:
 	}
 
 	// adds an item to the location before the iterator
-	void insert(iterator& it, const T& value)
+	void insert(iterator& it, const T& val)
 	{
 		if (it == nullptr)
 			return;
@@ -210,7 +218,7 @@ public:
 		else
 		{
 			list_element* elem = new list_element;
-			elem->data = value;
+			elem->data = val;
 			it.m_current->m_prev->m_next = elem;
 			elem->m_prev = it.m_current->prev;
 			it.m_current->m_prev = elem;
@@ -222,50 +230,74 @@ public:
 	// erases the item at the location of the iterator
 	void erase(iterator& it)
 	{
+		// 'it' is invalid, is it detectable?
+		// if 'it' is invalid, undefined behaviour
+		if (it == this->begin())								// if we delete the head of the list
+		{
+			if (this->m_cnt == 1)								// list contains only one element whilst deleting the head
+				this->m_head = nullptr;
+			else												// list contains more than one element whilst deleting the head
+			{
+				this->m_head = this->m_head->m_next;
+				this->m_head->m_prev = nullptr;
+			}
+		}
+		else if (it.m_current->m_next == nullptr)				// if we delete the tail of the list
+			it.m_current->m_prev->m_next = nullptr;
+		else													// general case; delete some element in the middle of the list
+		{
+			it.m_current->m_prev->m_next = it.m_current->m_next;
+			it.m_current->m_next->m_prev = it.m_current->m_prev;
+		}
 		delete it.m_current;
 		it.m_current = nullptr;
+		--this->m_cnt;
 	}
 
 	// removes first element with a certain value from the list
 	void remove(const T val)
 	{
-		if (this->m_cnt == 0)
-			return;
-		if (this->m_cnt == 1)
+		//if (this->m_cnt == 0)
+		//	return;
+		//if (this->m_cnt == 1)
+		//{
+		//	if (this->m_head->m_data == val)
+		//	{
+		//		delete this->m_head;
+		//		this->m_head = nullptr;
+		//		--this->m_cnt;
+		//	}
+		//	return;
+		//}
+		//if (this->m_head->m_data == val)
+		//{
+		//	auto temp = this->m_head->m_next;
+		//	temp->m_next->m_prev = temp;
+		//	delete this->m_head;
+		//	this->m_head = temp;
+		//	--this->m_cnt;
+		//}
+		//else
+		//{
+		//	for (iterator it = this->begin(); it != this->end(); ++it)
+		//	{
+		//		if (*it == val)
+		//		{
+		//			it.m_current->m_prev->m_next = it.m_current->m_next;
+		//			it.m_current->m_next->m_prev = it.m_current->m_prev;
+		//			this->erase(it);
+		//			return;
+		//		}
+		//	}
+		//}
+		for (auto it = this->begin(); it != this->end(); ++it)
 		{
-			if (this->m_head->m_data == val)
+			if (*it == val)
 			{
-				delete this->m_head;
-				this->m_head = nullptr;
-				--this->m_cnt;
-			}
-			return;
-		}
-		if (this->m_head->m_data == val)
-		{
-			auto temp = this->m_head->m_next;
-			temp->m_next->m_prev = temp;
-			delete this->m_head;
-			this->m_head = temp;
-			--this->m_cnt;
-		}
-		else
-		{
-			iterator it = this->begin();
-			for (iterator it = this->begin(); it != this->end(); ++it)
-			{
-				if (*it == val)
-				{
-					it.m_current->m_prev->m_next = it.m_current->m_next;
-					it.m_current->m_next->m_prev = it.m_current->m_prev;
-					this->erase(it);
-					return;
-				}
-				else
-					it = it->m_next;
+				this->erase(it);
+				return;
 			}
 		}
-		return;
 	}
 
 	// query returning if a value is in the list
@@ -286,7 +318,7 @@ public:
 			throw std::invalid_argument("INVALID INDEX");
 		auto it = this->begin();
 		for (size_t i = 0; i < idx; ++it, ++i);
-		return it->m_data;
+		return *it;
 	}
 
 	// [] operator overload

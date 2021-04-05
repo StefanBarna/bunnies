@@ -3,11 +3,19 @@
 #include <random>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 #include "colony.h"
+
+// List available in C++ standard
+//#include <forward_list>
+//#include <list>
 
 using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
+
+static random_device device;
+static default_random_engine engine(device());
 
 size_t colony::size() const
 {
@@ -16,15 +24,14 @@ size_t colony::size() const
 
 void colony::cull()
 {
-	random_device device;
-	default_random_engine rand(device());
-
-	size_t cull = this->size() / 2;
-	for (size_t i = 0; i < cull; i++)
+	size_t victimCnt = this->size() / 2;
+	for (size_t i = 0; i < victimCnt; i++)
 	{
-		uniform_int_distribution<size_t> dist(0, cull);
-		this->m_list.remove(this->m_list.at(dist(rand)));
-		cull--;
+		uniform_int_distribution<size_t> dist(0, this->size() - 1);
+		size_t victimIDX = dist(engine);
+		auto it = this->m_list.begin();
+		it = it + victimIDX;
+		this->m_list.erase(it);
 	}
 }
 
@@ -152,8 +159,6 @@ void colony::infect()
 	}
 	if (infection && infectable)
 	{
-		random_device device;
-		default_random_engine rand(device());
 		uniform_int_distribution<size_t> dist(0ull, this->size() - 1ull);
 
 		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
@@ -165,9 +170,9 @@ void colony::infect()
 		// infect the clean bunnies number infected times
 		for (size_t i = 0; i < infected; i++)
 		{
-			size_t loc = dist(rand);
+			size_t loc = dist(engine);
 			while (this->m_list.at(loc).isInfected())
-				loc = dist(rand);
+				loc = dist(engine);
 			this->m_list.at(loc).infect();
 		}
 	}
@@ -239,8 +244,10 @@ void colony::run()
 		mergeSort(this->m_list);
 
 		// printing
-		for (const bunny& item : this->m_list)
-			cout << item << endl;
+		//for (const bunny& item : this->m_list)
+		//	cout << item << endl;
+		std::for_each(m_list.begin(), m_list.end(), [](const bunny& item) { cout << item << endl; }); // for evey elent in range, do something (lambda)
+		//auto cntInfected = std::count_if(m_list.begin(), m_list.end(), [](const bunny& item) { return item.isInfected(); });
 
 		// waiting for 1 second
 		this_thread::sleep_for(1s);
@@ -255,6 +262,4 @@ void colony::run()
 // TODO: EVERY TIME YOU MODIFY SOMETHING ADD IT TO GITHUB
 // TODO: create the tester project and test everything (all classes, all functions)
 //          when you design tests, don't look at the implementation of the tested function/class; look what the specs (specifications, what the function should achieve).
-// TODO: add an erase function to your list that erases at the iterator (invalidates the iterator) ||
-// TODO: add a function in your list that adds an element before the iterator it receives ||
 // TODO: add console interractivity.
