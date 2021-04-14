@@ -5,6 +5,7 @@
 #include <thread>
 #include <algorithm>
 #include "colony.h"
+#include "list.h"
 
 // List available in C++ standard
 //#include <forward_list>
@@ -247,7 +248,18 @@ void colony::run()
 		//for (const bunny& item : this->m_list)
 		//	cout << item << endl;
 		std::for_each(m_list.begin(), m_list.end(), [](const bunny& item) { cout << item << endl; }); // for evey elent in range, do something (lambda)
-		//auto cntInfected = std::count_if(m_list.begin(), m_list.end(), [](const bunny& item) { return item.isInfected(); });
+		auto cntInfected = std::count_if(m_list.begin(), m_list.end(), [](const bunny& item) { return item.isInfected(); });
+
+		if (cntInfected > 0)
+		{
+			cout << "Infected: " << cntInfected << endl;
+			bunny* ptrI = new bunny[cntInfected];
+			std::copy_if(m_list.begin(), m_list.end(), ptrI, [](const bunny& item) {return item.isInfected(); });
+			std::for_each(ptrI, ptrI + cntInfected, [](const bunny& item) { cout << item << endl; });
+
+			if (cntInfected > 3)
+				std::transform(m_list.begin(), m_list.end(), m_list.begin(), [](bunny& item) { if (item.isInfected()) { item.age(); item.age(); } return item; });
+		}
 
 		// waiting for 1 second
 		this_thread::sleep_for(1s);
@@ -262,4 +274,4 @@ void colony::run()
 // TODO: EVERY TIME YOU MODIFY SOMETHING ADD IT TO GITHUB
 // TODO: create the tester project and test everything (all classes, all functions)
 //          when you design tests, don't look at the implementation of the tested function/class; look what the specs (specifications, what the function should achieve).
-// TODO: add console interractivity.
+// TODO: [X] add console interractivity.

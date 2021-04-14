@@ -24,12 +24,19 @@ public:
 	// iterator [PUBLIC STRUCTURE]
 	struct iterator
 	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using pointer = T*;
+		using reference = T&;
+
 		list_element* m_current;			// current position of iterator
 
 		// proceeds to the following list_element
 		iterator& operator++()
 		{
-			this->m_current = m_current->m_next;
+			if (this->m_current != nullptr)
+				this->m_current = m_current->m_next;
 			return *this;
 		}
 
@@ -44,7 +51,10 @@ public:
 		// regresses to the previous list_element
 		iterator& operator--()
 		{
-			this->m_current = m_current->m_prev;
+			if (this->m_current->m_prev != nullptr)
+				this->m_current = m_current->m_prev;
+			else
+				this->m_current = nullptr;
 			return *this;
 		}
 
@@ -73,7 +83,11 @@ public:
 		{
 			iterator it = *this;
 			for (size_t idx = 0; idx < i && it.m_current != nullptr; idx++)
+			{
 				++it;
+				if (it.m_current == nullptr)
+					break;
+			}
 			return it;
 		}
 
@@ -195,35 +209,42 @@ public:
 	// adds an item at the given postiion [starts at 0]
 	void insert(const T& val, size_t idx)
 	{
-		if (this->begin != nullptr && this->m_cnt >= idx)
+		if (0 <= this->m_cnt && this->m_cnt >= idx)
 		{
 			list_element* elem = new list_element;
 			elem->m_data = val;
-			auto it = this->begin();
-			for (size_t i = 0; i < idx - 1; ++i, ++it);
-			elem->m_next = it.m_current->m_next;
-			elem->m_prev = it.m_current;
-			it.m_current->m_next->m_prev = elem;
-			it.m_current->m_next = elem;
+			if (this->begin() != this->end())
+			{
+				auto it = this->begin();
+				for (size_t i = 0; i < idx - 1; ++i, ++it);
+				elem->m_next = it.m_current->m_next;
+				elem->m_prev = it.m_current;
+				if (idx != this->m_cnt)
+					it.m_current->m_next->m_prev = elem;
+				it.m_current->m_next = elem;
+			}
+			else
+				this->m_head = elem;
+			++this->m_cnt;
 		}
 	}
 
 	// adds an item to the location before the iterator
 	void insert(iterator& it, const T& val)
 	{
-		if (it == nullptr)
+		if (it.m_current == nullptr)
 			return;
 		if (it == this->begin())
 			this->push_front(val);
 		else
 		{
 			list_element* elem = new list_element;
-			elem->data = val;
+			elem->m_data = val;
 			it.m_current->m_prev->m_next = elem;
-			elem->m_prev = it.m_current->prev;
+			elem->m_prev = it.m_current->m_prev;
 			it.m_current->m_prev = elem;
 			elem->m_next = it.m_current;
-			this->cnt++;
+			this->m_cnt++;
 		}
 	}
 
@@ -257,39 +278,6 @@ public:
 	// removes first element with a certain value from the list
 	void remove(const T val)
 	{
-		//if (this->m_cnt == 0)
-		//	return;
-		//if (this->m_cnt == 1)
-		//{
-		//	if (this->m_head->m_data == val)
-		//	{
-		//		delete this->m_head;
-		//		this->m_head = nullptr;
-		//		--this->m_cnt;
-		//	}
-		//	return;
-		//}
-		//if (this->m_head->m_data == val)
-		//{
-		//	auto temp = this->m_head->m_next;
-		//	temp->m_next->m_prev = temp;
-		//	delete this->m_head;
-		//	this->m_head = temp;
-		//	--this->m_cnt;
-		//}
-		//else
-		//{
-		//	for (iterator it = this->begin(); it != this->end(); ++it)
-		//	{
-		//		if (*it == val)
-		//		{
-		//			it.m_current->m_prev->m_next = it.m_current->m_next;
-		//			it.m_current->m_next->m_prev = it.m_current->m_prev;
-		//			this->erase(it);
-		//			return;
-		//		}
-		//	}
-		//}
 		for (auto it = this->begin(); it != this->end(); ++it)
 		{
 			if (*it == val)
