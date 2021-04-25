@@ -5,6 +5,9 @@
 #include <iostream>
 #include "names.h"
 
+static const size_t SIDE_LENGTH = 50;
+
+// bunny colours [ENUM] 
 enum class colour
 {
 	white,
@@ -13,19 +16,34 @@ enum class colour
 	spotted
 };
 
-std::ostream& operator<<(std::ostream& os, const colour& c);
+// grid coordinates [PRIVATE STRUCTURE]
+struct coord
+{
+	int m_x;
+	int m_y;
+
+	// base constructor
+	coord();
+
+	// compares x and y coordinate values
+	bool operator<=(const coord& c) const;
+
+	// query returning whether the coordinates between two bunnies are the same
+	bool operator==(const coord& c) const;
+};
 
 class bunny
 {
 	static int m_cnt;
 	static names m_namelist;
 
-	int m_ID;
-	bool m_sex;			// true if male
-	colour m_colour;
-	size_t m_age;
-	std::string m_name;
-	bool m_infect;
+	int m_ID;					// unique value for each bunny
+	bool m_sex;					// true if male
+	colour m_colour;			// bunny colour
+	size_t m_age;				// bunny age
+	std::string m_name;			// bunny name
+	bool m_infect;				// infection identifier
+	coord m_loc;				// bunny location
 
 public:
 	// generates a new bunny
@@ -48,6 +66,9 @@ public:
 
 	// query that returns the age of a bunny
 	size_t getAge() const;
+
+	// returns the address of the coordinate member of a bunny
+	coord& location();
 
 	// query that returns if a bunny is infected
 	bool isInfected() const;

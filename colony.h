@@ -2,19 +2,20 @@
 #define COLONY_H
 
 #include "list.h"
-//#include <list>
 #include "bunny.h"
 
 class colony
 {
-	list<bunny> m_list = {};
-
-	// returns the amount of bunnies of a certain colour and gender
-	size_t bunnyofcolor(colour col, bool sex);
+	list<bunny> m_list = {};			// contains bunnies in the colony
 
 public:
 	// returns the size of the colony
 	size_t size() const;
+
+	// runs the colony simulator
+	void run();
+
+#pragma region Actions
 
 	// kills half of the population
 	void cull();
@@ -31,8 +32,8 @@ public:
 	// recieves player instruction for a cull
 	void userKill();
 
-	// runs the colony simulator
-	void run();
+#pragma endregion
+
 };
 
 #endif

@@ -1,15 +1,12 @@
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <iomanip>
 #include <random>
 #include <chrono>
 #include <thread>
 #include <algorithm>
+#include <sstream>
 #include "colony.h"
 #include "list.h"
-
-// List available in C++ standard
-//#include <forward_list>
-//#include <list>
 
 using namespace std;
 using namespace std::chrono;
@@ -36,7 +33,7 @@ void colony::cull()
 	}
 }
 
-void mergeSort(list<bunny>& li)
+void mergeSort(list<bunny>& li, bool(*comp)(list<bunny>::iterator, list<bunny>::iterator) = [](list<bunny>::iterator iA, list<bunny>::iterator iB) { return *iA <= *iB; })
 {
 	if (li.size() > 1)
 	{
@@ -51,8 +48,8 @@ void mergeSort(list<bunny>& li)
 		for (auto it = li.begin() + lenA; it != li.end(); ++it)
 			colB.push_back(*it);
 
-		mergeSort(colA);
-		mergeSort(colB);
+		mergeSort(colA, comp);
+		mergeSort(colB, comp);
 
 		list<bunny>::iterator itA = colA.begin();
 		list<bunny>::iterator itB = colB.begin();
@@ -61,7 +58,7 @@ void mergeSort(list<bunny>& li)
 		{
 			if (itA != colA.end() && itB != colB.end())
 			{
-				if (*itA <= *itB)
+				if (comp(itA, itB))
 				{
 					*it = *itA;
 					++itA;
@@ -84,17 +81,6 @@ void mergeSort(list<bunny>& li)
 			}
 		}
 	}
-}
-
-size_t colony::bunnyofcolor(colour col, bool sex)
-{
-	size_t cnt = 0;
-	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
-	{
-		if ((*it).getSex() == sex && (*it).getColour() == col)
-			cnt++;
-	}
-	return cnt;
 }
 
 void colony::age()
@@ -126,16 +112,28 @@ void colony::breed()
 	}
 	if (breed)
 	{
-		// creates a list of babies
-		list<bunny> babies;
-		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
+		auto it = this->m_list.begin();
+		size_t startSize = this->size();
+		for (size_t i = 0; i < startSize; ++i, ++it)
 		{
 			if (!(*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
-				babies.push_front(bunny((*it).getColour()));
+			{
+				bunny b((*it).getColour());
+				bool uniqueCoord = true;
+				do
+				{
+					uniqueCoord = true;
+					for (auto gridIt = this->m_list.begin(); gridIt != this->m_list.end(); ++gridIt)
+					{
+						if (b.location() == gridIt->location())
+							uniqueCoord = false;
+					}
+					if (!uniqueCoord)
+						b.location() = coord();
+				} while (!uniqueCoord);
+				this->m_list.push_back(b);
+			}
 		}
-		// adds the babies to the colony
-		for (auto it = babies.begin(); it != babies.end(); ++it)
-			this->m_list.push_back(*it);
 	}
 }
 
@@ -204,6 +202,9 @@ void colony::userKill()
 
 void colony::run()
 {
+	// sets the console to UTF8
+	SetConsoleOutputCP(CP_UTF8);
+
 	random_device device;
 	default_random_engine rand(device());
 
@@ -211,21 +212,9 @@ void colony::run()
 	for (size_t i = 0; i < 5; i++)
 		this->m_list.push_front(bunny());
 
-	size_t it = 1;
-
 	// "game" loop
 	while (this->size() != 0)
 	{
-		{
-			cout << "\n========================== Year " << setw(3) << it << " ==========================" << endl
-				<< " | " << setw(4) << this->bunnyofcolor(colour::white, true) << " | " << setw(4) << this->bunnyofcolor(colour::white, false)
-				<< " | " << setw(4) << this->bunnyofcolor(colour::black, true) << " | " << setw(4) << this->bunnyofcolor(colour::black, false)
-				<< " | " << setw(4) << this->bunnyofcolor(colour::brown, true) << " | " << setw(4) << this->bunnyofcolor(colour::brown, false)
-				<< " | " << setw(4) << this->bunnyofcolor(colour::spotted, true) << " | " << setw(4) << this->bunnyofcolor(colour::spotted, false)
-				<< " | " << this->size() << endl
-				<< "==============================================================" << endl << endl;
-		}
-
 		// ageing
 		this->age();
 
@@ -242,36 +231,46 @@ void colony::run()
 		}
 
 		// sorting
-		mergeSort(this->m_list);
+		mergeSort(this->m_list, [](list<bunny>::iterator iA, list<bunny>::iterator iB) {return iA->location() <= iB->location(); });
+
+		// console clear
+		system("CLS");
 
 		// printing
-		//for (const bunny& item : this->m_list)
-		//	cout << item << endl;
-		std::for_each(m_list.begin(), m_list.end(), [](const bunny& item) { cout << item << endl; }); // for evey elent in range, do something (lambda)
-		auto cntInfected = std::count_if(m_list.begin(), m_list.end(), [](const bunny& item) { return item.isInfected(); });
-
-		if (cntInfected > 0)
+		stringstream ss;
+		auto it = this->m_list.begin();
+		
+		ss << u8"┌";
+		for (size_t i = 0; i < SIDE_LENGTH; ++i)
+			ss << u8"─";
+		ss << u8"┐" << endl;
+		for (size_t i = 0; i < SIDE_LENGTH; ++i)
 		{
-			cout << "Infected: " << cntInfected << endl;
-			bunny* ptrI = new bunny[cntInfected];
-			std::copy_if(m_list.begin(), m_list.end(), ptrI, [](const bunny& item) {return item.isInfected(); });
-			std::for_each(ptrI, ptrI + cntInfected, [](const bunny& item) { cout << item << endl; });
-
-			if (cntInfected > 3)
-				std::transform(m_list.begin(), m_list.end(), m_list.begin(), [](bunny& item) { if (item.isInfected()) { item.age(); item.age(); } return item; });
+			ss << u8"│";
+			for (size_t j = 0; j < SIDE_LENGTH; ++j)
+			{
+				if (it != this->m_list.end() && it->location().m_y == i + 1 && it->location().m_x == j + 1)
+				{
+					ss << *it;
+					++it;
+				}
+				else
+					ss << u8"\33[38;2;51;51;51m·\33[0m";
+			}
+			ss << u8"│" << endl;
 		}
+		ss << u8"└";
+		for (size_t i = 0; i < SIDE_LENGTH; ++i)
+			ss << u8"─";
+		ss << u8"┘" << endl;
+
+		string s = ss.str();
+		cout << s;
 
 		// waiting for 1 second
 		this_thread::sleep_for(1s);
 
 		// user killing
 		this->userKill();
-
-		it++; 
 	}
 }
-
-// TODO: EVERY TIME YOU MODIFY SOMETHING ADD IT TO GITHUB
-// TODO: create the tester project and test everything (all classes, all functions)
-//          when you design tests, don't look at the implementation of the tested function/class; look what the specs (specifications, what the function should achieve).
-// TODO: [X] add console interractivity.
