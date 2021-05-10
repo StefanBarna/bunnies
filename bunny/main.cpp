@@ -4,5 +4,5 @@ using namespace std;
 int main()
 {
 	colony c;
-	c.run();
+	c.run(); // starts the program.
 }
