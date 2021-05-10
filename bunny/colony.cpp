@@ -8,6 +8,8 @@
 #include "colony.h"
 #include "list.h"
 
+// TODO: for next week create a new list [milestone 1]
+
 using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
