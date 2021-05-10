@@ -1,0 +1,29 @@
+enum class colour{
+white,
+brown,
+black,
+spotted}
+
+PRIVATE
+   int m_ID
+  bool m_sex
+colour m_color
+size_t m_age
+string m_name
+  bool m_mutate
+
+PUBLIC
+// creates a new bunny
+bunny()
+
+// creates a new bunny with a mother
+bunny(colour col)
+
+// checks whether or not a bunny dies
+void deathCheck()
+
+// proceeds to next turn
+void nextTurn
+
+// prints the data of the current object
+friend ostream& operator<<(ostream& os)
