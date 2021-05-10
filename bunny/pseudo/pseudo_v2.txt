@@ -1,0 +1,52 @@
+PSEUDOCODE
+
+// private members
+a list representing the colony
+
+// creating the original bunnies
+for 5 times
+	create a bunny with a random colour
+
+while there are bunnies alive
+	// ageing
+	for each bunny b in the colony
+		increment age by one
+		if the age exceeds 10
+			kill b (remove from colony)
+	
+	// breeding
+	boolean isMale = whether there is a mature non-radioactive male bunny
+	if isMale is true
+		run through the colony members
+		if a bunny is female
+			add a new bunny of the same colour (age 0) to the colony
+	
+	// radioactive spread
+	run through colony members
+	if there is a non-radioactive bunny
+		size_t cntRadio = number of infected bunnies
+		for every infected bunny
+			int idx = get a random number
+			while the bunny at idx is infected
+				get another random idx
+			convert bunny at idx to infected
+	otherwise
+		don't infect any bunnies
+	
+	// culling
+	if the colony's count is over 1000
+		integer cnt = half the size of the colony
+		for cnt times
+			remove a bunny at a random location (from 0 to the colony size)
+	
+	// sorting
+	while there are more than two elements in a split section of the colony
+		split the colony in half
+	sort (to switch or not to switch)
+	recreate the list representing the colony with the first list
+	while there are lists remaining
+		sort list 1 and 2
+	
+	// displaying
+	for every bunny in the colony
+		print the bunny

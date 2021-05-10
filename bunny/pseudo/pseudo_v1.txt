@@ -1,0 +1,37 @@
+PSEUDOCODE
+
+// creating the original bunnies
+make 5 bunnies with random colours
+
+while there are bunnies alive
+	// ageing
+	for each bunny b in the colony
+		increase age of b
+		if age of b > 10
+			remove b from the colony
+
+	// breeding
+	cntmales = whether or not there is a mature non-radioactive male bunny
+	if cntmales is more than 1
+		for each mature non-radioactive female in the colony
+			make a baby with the same colour, add it to the collection
+
+	// radioactivity
+	check if there are any noninfected bunnies (cycle through the colony)
+	if there are uninfected bunnies
+		cntradioactive = number of radioactive bunnies
+		for cntradioactive bunny in colony
+			idx = get a random number from 0 to colony size
+			while idx is infected
+				get a new idx	
+			convert idx to infected
+	otherwise don't infect anyone
+
+	// culling
+	if there are more than 1000 bunnies
+		kill half the bunnies
+
+	// printing the bunnies
+	sort the bunnies by age // implement bubble sort and merge sort and compare the times
+	for each bunny b in the colony
+		print b
