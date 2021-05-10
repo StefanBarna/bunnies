@@ -1,0 +1,14 @@
+*.slo
+*.suo
+*.user
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]in/
+*.obj
+.vs/
+*.log
+*.idb
+*.pdb
+*.exe
