@@ -17,6 +17,17 @@ using namespace std::this_thread;
 static random_device device;
 static default_random_engine engine(device());
 
+size_t colony::eventTracker::eventCnt(event_type evt) const
+{
+	size_t cnt = 0;
+	for (auto it = this->m_eventlist.begin(); it != this->m_eventlist.end(); ++it)
+	{
+		if (*it == evt)
+			++cnt;
+	}
+	return cnt;
+}
+
 size_t colony::size() const
 {
 	return this->m_list.size();
@@ -27,11 +38,15 @@ void colony::cull()
 	size_t victimCnt = this->size() / 2;
 	for (size_t i = 0; i < victimCnt; i++)
 	{
+		// select a random bunny
 		uniform_int_distribution<size_t> dist(0, this->size() - 1);
 		size_t victimIDX = dist(engine);
 		auto it = this->m_list.begin();
 		it = it + victimIDX;
+
+		// kill it
 		this->m_list.erase(it);
+		this->m_events.m_eventlist.push_back(event_type::killed);
 	}
 }
 
@@ -87,6 +102,7 @@ void mergeSort(list<bunny>& li, bool(*comp)(list<bunny>::iterator, list<bunny>::
 
 void colony::age()
 {
+	// checks for overaged bunnies
 	list<bunny> markedForDeath;
 	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
 	{
@@ -94,16 +110,21 @@ void colony::age()
 		if ((*it).deathCheck())
 			markedForDeath.push_front(*it);
 	}
+
+	// kill overaged bunnies
 	for (auto it = markedForDeath.begin(); it != markedForDeath.end(); ++it)
 	{
-		m_list.remove(*it);
+		this->m_list.remove(*it);
+		this->m_events.m_eventlist.push_back(event_type::dead);
 	}
 }
 
-void colony::breed()
+bool colony::breed()
 {
 	bool breed = false;
 	size_t prevSize = this->size();
+
+	// checks if breeding is possible
 	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
 	{
 		if ((*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
@@ -112,6 +133,8 @@ void colony::breed()
 			break;
 		}
 	}
+	
+	// if it is
 	if (breed)
 	{
 		auto it = this->m_list.begin();
@@ -121,7 +144,9 @@ void colony::breed()
 			if (!(*it).getSex() && !(*it).isInfected() && (*it).getAge() >= 2)
 			{
 				bunny b((*it).getColour());
-				bool uniqueCoord = true;
+				bool uniqueCoord;
+
+				// find a location for the new bunny
 				do
 				{
 					uniqueCoord = true;
@@ -133,10 +158,18 @@ void colony::breed()
 					if (!uniqueCoord)
 						b.location() = coord();
 				} while (!uniqueCoord);
+
+				// birth the bunny
 				this->m_list.push_back(b);
+				this->m_events.m_eventlist.push_back(event_type::born);
 			}
 		}
+		return true;
 	}
+
+	// return that breeding did not happen
+	else
+		return false;
 }
 
 bool colony::infect()
@@ -178,10 +211,14 @@ bool colony::infect()
 		{
 			if (clean > 0)
 			{
+				// find an infectable bunny
 				size_t loc = dist(engine);
 				while (this->m_list.at(loc).isInfected())
 					loc = dist(engine);
+
+				// infect the bunny
 				this->m_list.at(loc).infect();
+				this->m_events.m_eventlist.push_back(event_type::infected);
 				--clean;
 			}
 			else
@@ -195,7 +232,7 @@ bool colony::infect()
 	return true;
 }
 
-void colony::monogender(bool& gameOver)
+bool colony::monogender()
 {
 	bool genderType = this->m_list[0].getSex();
 	bool genderCheck = false;
@@ -205,7 +242,9 @@ void colony::monogender(bool& gameOver)
 			genderCheck = true;
 	}
 	if (!genderCheck)
-		gameOver = true;
+		return true;
+	else
+		return false;
 }
 
 void colony::input(bool& action)
@@ -228,14 +267,14 @@ void colony::input(bool& action)
 					{
 						// the user pressed a key, find which key
 						if (inRecord[i].Event.KeyEvent.bKeyDown && inRecord[i].Event.KeyEvent.wVirtualKeyCode == 'K')
+						{
 							this->cull();
+							action = true;
+						}
 						else if (inRecord[i].Event.KeyEvent.bKeyDown &&
 							((inRecord[i].Event.KeyEvent.dwControlKeyState & RIGHT_CTRL_PRESSED) != 0 || (inRecord[i].Event.KeyEvent.dwControlKeyState & LEFT_CTRL_PRESSED) != 0) &&
 							inRecord[i].Event.KeyEvent.wVirtualKeyCode == 'L')
-							cout << "it works";
-						// TODO: buffer not cleared once per turn. Either do all the events at once or remove all other events after the first one
-
-						action = true;
+							this->cull();
 					}
 
 				}
@@ -244,6 +283,67 @@ void colony::input(bool& action)
 	}
 	else
 		action = false;
+}
+
+void colony::print(size_t year) const
+{
+	stringstream ss;
+	auto it = this->m_list.begin();
+
+	// menu
+	string menu[8]{ u8" ┌──────────────┐" };
+	stringstream temp;
+	temp << u8" │ YEAR " << setw(2) << year << u8"      │";
+	menu[1] = temp.str();
+	temp.str("");
+	menu[2] = u8" │--------------│";
+	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::born) << u8" born     │";
+	menu[3] = temp.str();
+	temp.str("");
+	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::dead) << u8" died     │";
+	menu[4] = temp.str();
+	temp.str("");
+	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::killed) << u8" killed   │";
+	menu[5] = temp.str();
+	temp.str("");
+	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::infected) << u8" infected │";
+	menu[6] = temp.str();
+	temp.str("");
+	menu[7] = u8" └──────────────┘";
+	this->m_events.m_eventlist.~list();
+
+	ss << u8"┌";
+	for (size_t i = 0; i < SIDE_LENGTH; ++i)
+		ss << u8"─";
+	ss << u8"┐";
+	ss << menu[0];
+	ss << endl;
+	for (size_t i = 0; i < SIDE_LENGTH; ++i)
+	{
+		ss << u8"│";
+		for (size_t j = 0; j < SIDE_LENGTH; ++j)
+		{
+			if (it != this->m_list.end() && it->location().m_y == i + 1 && it->location().m_x == j + 1)
+			{
+				ss << *it;
+				++it;
+			}
+			else
+				ss << u8"\33[38;2;51;51;51m·\33[0m";
+		}
+		ss << u8"│";
+		if (i < 7)
+			ss << menu[i + 1];
+		ss << endl;
+	}
+	ss << u8"└";
+	for (size_t i = 0; i < SIDE_LENGTH; ++i)
+		ss << u8"─";
+	ss << u8"┘" << endl;
+	if (!this->m_run)
+		ss << "[GAME OVER]" << endl;
+
+	std::cout << ss.str();
 }
 
 // 0000 0001
@@ -306,36 +406,44 @@ void colony::run()
 
 	// creating the first bunnies
 	for (size_t i = 0; i < 5; i++)
+	{
 		this->m_list.push_front(bunny());
-
-	// manages the length of the game
-	bool gameOver = false;
+		this->m_events.m_eventlist.push_back(event_type::born);
+	}
 
 	// preliminary game check (all female / all male)
-	this->monogender(gameOver);
+	this->m_run = !this->monogender();
 
 	// manages user's actions
 	bool action = false;
 
-	// "game" loop
-	while (this->size() != 0)
-	{
-		// continue conditions
-		this->monogender(gameOver);
+	// turn counter
+	size_t year = 1;
 
+	// if startup failed
+	if (!this->m_run)
+		this->print(year);
+
+	// "game" loop
+	while (this->m_run)
+	{
 		// user input
 		this->input(action);
 
-		if (!action & !gameOver)
+		// ageing
+		this->age();
+
+		// infection
+		this->m_run = this->infect();
+
+
+		if (!action)
 		{
-			// ageing
-			this->age();
-
-			// infection
-			gameOver = !this->infect();
-
 			// breeding
-			this->breed();
+			if (year > 1)
+				this->m_run = this->breed();
+			else
+				this->breed();
 
 			// culling
 			if (this->size() > 1000)
@@ -345,46 +453,23 @@ void colony::run()
 			mergeSort(this->m_list, [](list<bunny>::iterator iA, list<bunny>::iterator iB) {return iA->location() <= iB->location(); });
 		}
 
+		if (this->size() == 0)
+			this->m_run = false;
+
 		// console clear
-		system("CLS");
+		std::system("CLS");
 
 		// printing
-		stringstream ss;
-		auto it = this->m_list.begin();
-		
-		ss << u8"┌";
-		for (size_t i = 0; i < SIDE_LENGTH; ++i)
-			ss << u8"─";
-		ss << u8"┐" << endl;
-		for (size_t i = 0; i < SIDE_LENGTH; ++i)
-		{
-			ss << u8"│";
-			for (size_t j = 0; j < SIDE_LENGTH; ++j)
-			{
-				if (it != this->m_list.end() && it->location().m_y == i + 1 && it->location().m_x == j + 1)
-				{
-					ss << *it;
-					++it;
-				}
-				else
-					ss << u8"\33[38;2;51;51;51m·\33[0m";
-			}
-			ss << u8"│" << endl;
-		}
-		ss << u8"└";
-		for (size_t i = 0; i < SIDE_LENGTH; ++i)
-			ss << u8"─";
-		ss << u8"┘" << endl;
-		if (gameOver)
-			ss << "[GAME OVER]" << endl;
-
-		cout << ss.str();
+		this->print(year);
 
 		// waiting for 1 second
 		this_thread::sleep_for(1s);
 
+		// next year
+		++year;
+
 		// ends program
-		if (gameOver)
-			return;
+		if (!this->m_run)
+			break;
 	}
 }

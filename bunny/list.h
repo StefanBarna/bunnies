@@ -251,8 +251,6 @@ public:
 	// erases the item at the location of the iterator
 	void erase(iterator& it)
 	{
-		// 'it' is invalid, is it detectable?
-		// if 'it' is invalid, undefined behaviour
 		if (it == this->begin())								// if we delete the head of the list
 		{
 			if (this->m_cnt == 1)								// list contains only one element whilst deleting the head
