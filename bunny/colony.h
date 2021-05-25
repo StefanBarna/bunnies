@@ -6,27 +6,12 @@
 
 class colony
 {
-	// event type
-	enum class event_type
-	{
-		born,
-		dead,		// died of age
-		killed,		// died of culling
-		infected
-	};
-
-	// keeps track of events
-	struct eventTracker
-	{
-		list<event_type> m_eventlist = {};	// contains events in the colony
-
-		// returns number of an event
-		size_t eventCnt(event_type) const;
-	};
-
 	list<bunny> m_list = {};			// contains bunnies in the colony
-	eventTracker m_events;				// keeps track of events in the colony
 	bool m_run = true;					// manages the length of the game
+
+	// TODO: implement a delegate
+	// delegate
+	void(*onYearEnd)(int year, const list<bunny>& list) = nullptr;
 
 public:
 	// returns the size of the colony

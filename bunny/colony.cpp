@@ -7,6 +7,7 @@
 #include <sstream>
 #include "colony.h"
 #include "list.h"
+#include "eventManager.h"
 
 // TODO: for next week create a new list [milestone 1]
 
@@ -17,16 +18,6 @@ using namespace std::this_thread;
 static random_device device;
 static default_random_engine engine(device());
 
-size_t colony::eventTracker::eventCnt(event_type evt) const
-{
-	size_t cnt = 0;
-	for (auto it = this->m_eventlist.begin(); it != this->m_eventlist.end(); ++it)
-	{
-		if (*it == evt)
-			++cnt;
-	}
-	return cnt;
-}
 
 size_t colony::size() const
 {
@@ -45,8 +36,11 @@ void colony::cull()
 		it = it + victimIDX;
 
 		// kill it
+		event evt;
+		evt.m_eventType = event_type::killed;
+		evt.m_subject = *it;
 		this->m_list.erase(it);
-		this->m_events.m_eventlist.push_back(event_type::killed);
+		EventManager::getInstance()->addEvent(evt);
 	}
 }
 
@@ -114,8 +108,11 @@ void colony::age()
 	// kill overaged bunnies
 	for (auto it = markedForDeath.begin(); it != markedForDeath.end(); ++it)
 	{
+		event evt;
+		evt.m_eventType = event_type::dead;
+		evt.m_subject = *it;
 		this->m_list.remove(*it);
-		this->m_events.m_eventlist.push_back(event_type::dead);
+		EventManager::getInstance()->addEvent(evt);
 	}
 }
 
@@ -160,8 +157,11 @@ bool colony::breed()
 				} while (!uniqueCoord);
 
 				// birth the bunny
+				event evt;
+				evt.m_eventType = event_type::born;
+				evt.m_subject = *it;
 				this->m_list.push_back(b);
-				this->m_events.m_eventlist.push_back(event_type::born);
+				EventManager::getInstance()->addEvent(evt);
 			}
 		}
 		return true;
@@ -218,7 +218,10 @@ bool colony::infect()
 
 				// infect the bunny
 				this->m_list.at(loc).infect();
-				this->m_events.m_eventlist.push_back(event_type::infected);
+				event evt;
+				evt.m_eventType = event_type::infected;
+				evt.m_subject = this->m_list.at(loc);
+				EventManager::getInstance()->addEvent(evt);
 				--clean;
 			}
 			else
@@ -287,6 +290,9 @@ void colony::input(bool& action)
 
 void colony::print(size_t year) const
 {
+	// console clear
+	std::system("CLS");
+
 	stringstream ss;
 	auto it = this->m_list.begin();
 
@@ -297,21 +303,22 @@ void colony::print(size_t year) const
 	menu[1] = temp.str();
 	temp.str("");
 	menu[2] = u8" │--------------│";
-	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::born) << u8" born     │";
+	temp << u8" │ " << setw(3) << setfill('0') << right << EventManager::getInstance()->eventCnt(event_type::born) << u8" born     │";
 	menu[3] = temp.str();
 	temp.str("");
-	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::dead) << u8" died     │";
+	temp << u8" │ " << setw(3) << setfill('0') << right << EventManager::getInstance()->eventCnt(event_type::dead) << u8" died     │";
 	menu[4] = temp.str();
 	temp.str("");
-	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::killed) << u8" killed   │";
+	temp << u8" │ " << setw(3) << setfill('0') << right << EventManager::getInstance()->eventCnt(event_type::killed) << u8" killed   │";
 	menu[5] = temp.str();
 	temp.str("");
-	temp << u8" | " << setw(3) << setfill('0') << right << this->m_events.eventCnt(event_type::infected) << u8" infected │";
+	temp << u8" │ " << setw(3) << setfill('0') << right << EventManager::getInstance()->eventCnt(event_type::infected) << u8" infected │";
 	menu[6] = temp.str();
 	temp.str("");
 	menu[7] = u8" └──────────────┘";
-	this->m_events.m_eventlist.~list();
+	EventManager::getInstance()->deleteList();
 
+	// printing
 	ss << u8"┌";
 	for (size_t i = 0; i < SIDE_LENGTH; ++i)
 		ss << u8"─";
@@ -404,11 +411,16 @@ void colony::run()
 	random_device device;
 	default_random_engine rand(device());
 
+	// TODO: make number of bunnies you start with configurable
 	// creating the first bunnies
 	for (size_t i = 0; i < 5; i++)
 	{
-		this->m_list.push_front(bunny());
-		this->m_events.m_eventlist.push_back(event_type::born);
+		bunny newBunny = bunny();
+		this->m_list.push_front(newBunny);
+		event evt;
+		evt.m_eventType = event_type::born;
+		evt.m_subject = newBunny;
+		EventManager::getInstance()->addEvent(evt);
 	}
 
 	// preliminary game check (all female / all male)
@@ -455,9 +467,6 @@ void colony::run()
 
 		if (this->size() == 0)
 			this->m_run = false;
-
-		// console clear
-		std::system("CLS");
 
 		// printing
 		this->print(year);

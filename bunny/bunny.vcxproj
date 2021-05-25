@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClInclude Include="bunny.h" />
     <ClInclude Include="colony.h" />
+    <ClInclude Include="EventManager.h" />
     <ClInclude Include="list.h" />
     <ClInclude Include="names.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bunny.cpp" />
     <ClCompile Include="colony.cpp" />
+    <ClCompile Include="EventManager.cpp" />
     <ClCompile Include="names.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
