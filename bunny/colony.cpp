@@ -36,11 +36,8 @@ void colony::cull()
 		it = it + victimIDX;
 
 		// kill it
-		event evt;
-		evt.m_eventType = event_type::killed;
-		evt.m_subject = *it;
+		EventManager::getInstance()->addEvent(event_type::killed, *it);
 		this->m_list.erase(it);
-		EventManager::getInstance()->addEvent(evt);
 	}
 }
 
@@ -108,11 +105,8 @@ void colony::age()
 	// kill overaged bunnies
 	for (auto it = markedForDeath.begin(); it != markedForDeath.end(); ++it)
 	{
-		event evt;
-		evt.m_eventType = event_type::dead;
-		evt.m_subject = *it;
+		EventManager::getInstance()->addEvent(event_type::dead, *it);
 		this->m_list.remove(*it);
-		EventManager::getInstance()->addEvent(evt);
 	}
 }
 
@@ -157,11 +151,8 @@ bool colony::breed()
 				} while (!uniqueCoord);
 
 				// birth the bunny
-				event evt;
-				evt.m_eventType = event_type::born;
-				evt.m_subject = *it;
+				EventManager::getInstance()->addEvent(event_type::born, *it);
 				this->m_list.push_back(b);
-				EventManager::getInstance()->addEvent(evt);
 			}
 		}
 		return true;
@@ -217,11 +208,8 @@ bool colony::infect()
 					loc = dist(engine);
 
 				// infect the bunny
+				EventManager::getInstance()->addEvent(event_type::infected, this->m_list.at(loc));
 				this->m_list.at(loc).infect();
-				event evt;
-				evt.m_eventType = event_type::infected;
-				evt.m_subject = this->m_list.at(loc);
-				EventManager::getInstance()->addEvent(evt);
 				--clean;
 			}
 			else
@@ -316,7 +304,6 @@ void colony::print(size_t year) const
 	menu[6] = temp.str();
 	temp.str("");
 	menu[7] = u8" └──────────────┘";
-	EventManager::getInstance()->deleteList();
 
 	// printing
 	ss << u8"┌";
@@ -417,10 +404,7 @@ void colony::run()
 	{
 		bunny newBunny = bunny();
 		this->m_list.push_front(newBunny);
-		event evt;
-		evt.m_eventType = event_type::born;
-		evt.m_subject = newBunny;
-		EventManager::getInstance()->addEvent(evt);
+		EventManager::getInstance()->addEvent(event_type::born, newBunny);
 	}
 
 	// preliminary game check (all female / all male)
@@ -470,6 +454,12 @@ void colony::run()
 
 		// printing
 		this->print(year);
+
+		// print list to a text file with detail
+		EventManager::getInstance()->printFile(year);
+
+		// reset events
+		EventManager::getInstance()->deleteList();
 
 		// waiting for 1 second
 		this_thread::sleep_for(1s);

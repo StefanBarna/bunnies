@@ -1,0 +1,35 @@
+===============
+      001      
+===============
+    SUMMARY    
+===============
+005[BORN]
+000[DIED]
+000[KILLED]
+000[INFECTED]
+
+===============
+    DETAILS    
+===============
+[0000][Gloria  ][spotted][F][BORN]
+[0004][Nutmeg  ][spotted][F][BORN]
+[0008][Callie  ][white  ][F][BORN]
+[0012][Chester ][black  ][M][BORN]
+[0016][Coco    ][spotted][F][BORN]
+===============
+      002      
+===============
+    SUMMARY    
+===============
+004[BORN]
+000[DIED]
+000[KILLED]
+000[INFECTED]
+
+===============
+    DETAILS    
+===============
+[0016][Coco    ][spotted][F][BORN]
+[0008][Callie  ][white  ][F][BORN]
+[0004][Nutmeg  ][spotted][F][BORN]
+[0000][Gloria  ][spotted][F][BORN]

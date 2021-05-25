@@ -13,7 +13,7 @@ uniform_int_distribution<size_t> sdist(0, 1);			// sex generator
 uniform_int_distribution<size_t> cdist(0, 3);			// colour generator
 uniform_int_distribution<size_t> ndist(0, 9);			// name generator
 uniform_int_distribution<size_t> percentdist(0, 99);	// percent generator
-uniform_int_distribution<size_t> ldist(1, SIDE_LENGTH);	// location / coordinate generator
+uniform_int_distribution<int> ldist(1, SIDE_LENGTH);	// location / coordinate generator
 
 coord::coord()
 {
@@ -104,6 +104,16 @@ size_t bunny::getAge() const
 	return this->m_age;
 }
 
+size_t bunny::getID() const
+{
+	return this->m_ID;
+}
+
+string bunny::getName() const
+{
+	return this->m_name;
+}
+
 coord& bunny::location()
 {
 	return this->m_loc;
@@ -134,7 +144,6 @@ bool bunny::operator<=(const bunny& b) const
 	return (this->m_age <= b.m_age);
 }
 
-// TODO: update this
 ostream& operator<<(ostream& os, const bunny& b)
 {
 	// colour

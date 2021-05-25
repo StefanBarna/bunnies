@@ -17,6 +17,9 @@ struct event
 {
 	event_type m_eventType;
 	bunny m_subject;
+
+	// printer
+	friend std::ostream& operator<<(std::ostream& os, const event& evt);
 };
 
 class EventManager
@@ -28,20 +31,24 @@ class EventManager
 	list<event> m_events = {};
 
 	// private constructor
-	EventManager() = default;
+	EventManager();
 
 public:	
 	// singleton
 	static EventManager* getInstance();
 
 	// adds an event to the list of events
-	void addEvent(event);
+	void addEvent(event_type type, bunny subj);
 
 	// returns quantity of an event type in the list of events
 	size_t eventCnt(event_type evt) const;
 
+	// prints the contents of the event list to a text file
+	void printFile(size_t year) const;
+
 	// deletes the current list
 	void deleteList();
+
 };
 
 #endif

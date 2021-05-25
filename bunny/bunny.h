@@ -67,6 +67,12 @@ public:
 	// query that returns the age of a bunny
 	size_t getAge() const;
 
+	// query that returns the ID of a bunny
+	size_t getID() const;
+
+	// query that returns the name of a bunny
+	std::string getName() const;
+
 	// returns the address of the coordinate member of a bunny
 	coord& location();
 
@@ -89,7 +95,7 @@ public:
 
 #pragma endregion
 
-	// prints the data of the current object
+	// formatted printing of current object for grid
 	friend std::ostream& operator<<(std::ostream& os, const bunny& b);
 };
 
