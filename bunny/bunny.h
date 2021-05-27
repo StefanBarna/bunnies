@@ -6,6 +6,7 @@
 #include "names.h"
 
 static const size_t SIDE_LENGTH = 50;
+static const size_t MAX_RESIST = 50;
 
 // bunny colours [ENUM] 
 enum class colour
@@ -43,6 +44,7 @@ class bunny
 	size_t m_age;				// bunny age
 	std::string m_name;			// bunny name
 	bool m_infect;				// infection identifier
+	size_t m_resistance;		// chance to ignore infection
 	coord m_loc;				// bunny location
 
 public:

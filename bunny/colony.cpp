@@ -170,7 +170,6 @@ bool colony::infect()
 {
 	bool infection = false;
 	bool infectable = false;
-	size_t infectCnt = 0;
 
 	// is there an infection
 	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
@@ -195,14 +194,11 @@ bool colony::infect()
 		{
 			// find number infected
 			if ((*it).isInfected())
-			{
-				++infectCnt;
 				infected.push_back(&*it);
-			}
 		}
 
 		// manages number of infectable bunnis
-		size_t clean = this->m_list.size() - infectCnt;
+		size_t clean = this->m_list.size() - infected.size();
 
 		// infect the clean bunnies number infected times
 		for (auto it = infected.begin(); it != infected.end(); ++it)
@@ -218,17 +214,26 @@ bool colony::infect()
 						possibleInfections.push_back(&*i);
 				}
 
-				if (possibleInfections.size() > 0)
+				// iterate over each bunny
+				for (auto i = possibleInfections.begin(); i != possibleInfections.end(); ++i)
 				{
-					// select random bunny from the infectable ones
-					uniform_int_distribution<size_t> dist(0ull, possibleInfections.size() - 1ull);
-					size_t loc = dist(engine);
-
 					// infect the bunny
-					EventManager::getInstance()->addEvent(event_type::infected, *possibleInfections.at(loc));
-					possibleInfections.at(loc)->infect();
+					EventManager::getInstance()->addEvent(event_type::infected, **i);
+					(*i)->infect();
 					--clean;
 				}
+
+				//if (possibleInfections.size() > 0)
+				//{
+				//	// select random bunny from the infectable ones
+				//	uniform_int_distribution<size_t> dist(0ull, possibleInfections.size() - 1ull);
+				//	size_t loc = dist(engine);
+
+				//	// infect the bunny
+				//	EventManager::getInstance()->addEvent(event_type::infected, *possibleInfections.at(loc));
+				//	possibleInfections.at(loc)->infect();
+				//	--clean;
+				//}
 			}
 			else
 			{

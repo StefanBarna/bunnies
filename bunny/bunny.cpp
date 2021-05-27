@@ -14,6 +14,7 @@ uniform_int_distribution<size_t> cdist(0, 3);			// colour generator
 uniform_int_distribution<size_t> ndist(0, 9);			// name generator
 uniform_int_distribution<size_t> percentdist(0, 99);	// percent generator
 uniform_int_distribution<int> ldist(1, SIDE_LENGTH);	// location / coordinate generator
+uniform_int_distribution<size_t> rdist(0, MAX_RESIST);
 
 coord::coord()
 {
@@ -57,6 +58,7 @@ bunny::bunny()
 		this->m_infect = true;
 	else
 		this->m_infect = false;
+	this->m_resistance = rdist(randEng);
 	this->m_cnt++;
 	this->m_loc = coord();
 }
@@ -136,7 +138,8 @@ bool bunny::isInfected() const
 
 void bunny::infect()
 {
-	this->m_infect = true;
+	if (percentdist(randEng) > this->m_resistance)
+		this->m_infect = true;
 }
 
 bool bunny::operator!=(const bunny& other) const
