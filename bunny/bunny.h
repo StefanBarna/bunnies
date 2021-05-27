@@ -70,6 +70,12 @@ public:
 	// query that returns the ID of a bunny
 	size_t getID() const;
 
+	// query that returns the x-value of a bunny
+	int getX() const;
+	
+	// query that returns the y-value of a bunny
+	int getY() const;
+
 	// query that returns the name of a bunny
 	std::string getName() const;
 

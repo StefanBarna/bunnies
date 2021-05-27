@@ -109,6 +109,16 @@ size_t bunny::getID() const
 	return this->m_ID;
 }
 
+int bunny::getX() const
+{
+	return this->m_loc.m_x;
+}
+
+int bunny::getY() const
+{
+	return this->m_loc.m_y;
+}
+
 string bunny::getName() const
 {
 	return this->m_name;

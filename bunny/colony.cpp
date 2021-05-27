@@ -18,6 +18,9 @@ using namespace std::this_thread;
 static random_device device;
 static default_random_engine engine(device());
 
+const int INFECT_RADIUS = 6;
+const int START_SPAWN = 5;
+
 
 size_t colony::size() const
 {
@@ -167,7 +170,7 @@ bool colony::infect()
 {
 	bool infection = false;
 	bool infectable = false;
-	size_t infected = 0;
+	size_t infectCnt = 0;
 
 	// is there an infection
 	for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
@@ -185,32 +188,47 @@ bool colony::infect()
 	// if there is an infection
 	if (infection && infectable)
 	{
-		uniform_int_distribution<size_t> dist(0ull, this->size() - 1ull);
+		list<bunny*> infected;
 
+		// create a list of infected bunnies
 		for (auto it = this->m_list.begin(); it != this->m_list.end(); ++it)
 		{
 			// find number infected
 			if ((*it).isInfected())
-				++infected;
+			{
+				++infectCnt;
+				infected.push_back(&*it);
+			}
 		}
 
 		// manages number of infectable bunnis
-		size_t clean = this->m_list.size() - infected;
+		size_t clean = this->m_list.size() - infectCnt;
 
 		// infect the clean bunnies number infected times
-		for (size_t i = 0; i < infected; i++)
+		for (auto it = infected.begin(); it != infected.end(); ++it)
 		{
 			if (clean > 0)
 			{
-				// find an infectable bunny
-				size_t loc = dist(engine);
-				while (this->m_list.at(loc).isInfected())
-					loc = dist(engine);
+				// find bunnies that could be infected by the current one
+				list<bunny*> possibleInfections;
+				for (auto i = this->m_list.begin(); i != this->m_list.end(); ++i)
+				{
+					// if the bunny is in range (4 units)
+					if (sqrt(pow((it.m_current->m_data->getX() - i->getX()), 2) + pow((it.m_current->m_data->getY() - i->getY()), 2)) <= INFECT_RADIUS && !i->isInfected())
+						possibleInfections.push_back(&*i);
+				}
 
-				// infect the bunny
-				EventManager::getInstance()->addEvent(event_type::infected, this->m_list.at(loc));
-				this->m_list.at(loc).infect();
-				--clean;
+				if (possibleInfections.size() > 0)
+				{
+					// select random bunny from the infectable ones
+					uniform_int_distribution<size_t> dist(0ull, possibleInfections.size() - 1ull);
+					size_t loc = dist(engine);
+
+					// infect the bunny
+					EventManager::getInstance()->addEvent(event_type::infected, *possibleInfections.at(loc));
+					possibleInfections.at(loc)->infect();
+					--clean;
+				}
 			}
 			else
 			{
@@ -400,7 +418,7 @@ void colony::run()
 
 	// TODO: make number of bunnies you start with configurable
 	// creating the first bunnies
-	for (size_t i = 0; i < 5; i++)
+	for (size_t i = 0; i < START_SPAWN; i++)
 	{
 		bunny newBunny = bunny();
 		this->m_list.push_front(newBunny);
@@ -426,12 +444,11 @@ void colony::run()
 		// user input
 		this->input(action);
 
-		// ageing
-		this->age();
-
 		// infection
 		this->m_run = this->infect();
 
+		// ageing
+		this->age();
 
 		if (!action)
 		{
